@@ -1,0 +1,174 @@
+
+<template>
+  <div class="login">
+    <background class="back-ground" />
+    <el-card class="login-form-layout">
+      <el-form
+        autoComplete="on"
+        :model="loginForm"
+        ref="loginForm"
+        label-position="left"
+      >
+        <div style="text-align: center">
+          <svg-icon
+            icon-class="login-mall"
+            style="width: 56px; height: 56px; color: #409eff"
+          ></svg-icon>
+        </div>
+        <h2 class="login-title color-main" style="color: #409eff">
+          迪玛公司ERP管理系统
+        </h2>
+        <el-form-item prop="username">
+          <el-input
+            name="username"
+            type="text"
+            v-model="loginForm.username"
+            autoComplete="on"
+            placeholder="请输入用户名，admin/productAdmin/orderAdmin"
+          >
+            <span slot="prefix">
+              <svg-icon icon-class="user" class="color-main"></svg-icon>
+            </span>
+          </el-input>
+        </el-form-item>
+        <el-form-item prop="password">
+          <el-input
+            name="password"
+            :type="pwdType"
+            @keyup.enter="handleLogin"
+            v-model="loginForm.password"
+            autoComplete="on"
+            placeholder="请输入密码，测试密码为123456"
+          >
+            <span slot="prefix">
+              <svg-icon icon-class="password" class="color-main"></svg-icon>
+            </span>
+            <span slot="suffix" @click="showPwd">
+              <svg-icon icon-class="eye" class="color-main"></svg-icon>
+            </span>
+          </el-input>
+        </el-form-item>
+        <el-form-item style="margin-bottom: 60px; text-align: center">
+          <el-button
+            style="width: 45%; box-shadow: 0px 8px 15px rgba(0, 0, 0, 0.1)"
+            type="primary"
+            round="true"
+            :loading="loading"
+            @click.prevent="handleLogin"
+          >
+            登录
+          </el-button>
+        </el-form-item>
+      </el-form>
+    </el-card>
+  </div>
+</template>
+
+<script>
+import { setCookie, getCookie } from "@/utils/user";
+
+import { loginApi } from "@/api/user";
+import { setToken } from "@/utils/auth";
+import { mapMutations } from "vuex";
+import Background from "@/components/background/Background.vue";
+
+export default {
+  components: { Background },
+  name: "Login",
+  created() {
+    this.loginForm.username = getCookie("username");
+    this.loginForm.password = getCookie("password");
+    if (
+      this.loginForm.username === undefined ||
+      this.loginForm.username == null ||
+      this.loginForm.username === ""
+    ) {
+      this.loginForm.username = "admin";
+    }
+    if (
+      this.loginForm.password === undefined ||
+      this.loginForm.password == null
+    ) {
+      this.loginForm.password = "";
+    }
+  },
+  data() {
+    return {
+      loginForm: {
+        username: "",
+        password: "",
+      },
+      loading: false,
+      pwdType: "password",
+    };
+  },
+  methods: {
+    ...mapMutations("user", ["SET_TOKEN"]),
+    showPwd() {
+      if (this.pwdType === "password") {
+        this.pwdType = "";
+      } else {
+        this.pwdType = "password";
+      }
+    },
+    handleLogin() {
+      this.$refs.loginForm.validate((valid) => {
+        if (valid) {
+          this.loading = true;
+          loginApi(this.loginForm.username, this.loginForm.password).then(
+            (response) => {
+              if (response.message == "操作成功") {
+                setCookie("username", this.loginForm.username, 15);
+                setCookie("password", this.loginForm.password, 15);
+                setToken(response.token);
+
+                this.SET_TOKEN(response.token);
+
+                this.$router.push({ path: "/" });
+              } else {
+                this.$message({
+                  message: response.message,
+                  type: "error",
+                });
+              }
+
+              this.loading = false;
+            }
+          );
+        } else {
+          console.log("参数验证不合法！");
+        }
+      });
+    },
+  },
+};
+</script>
+
+<style scoped>
+.login {
+  position: relative;
+}
+.back-ground {
+  position: absolute;
+}
+.login-form-layout {
+  position: absolute;
+  left: 0;
+  right: 0;
+  width: 360px;
+  margin: 140px auto;
+}
+
+.login-title {
+  text-align: center;
+}
+
+.login-center-layout {
+  background: #409eff;
+  width: auto;
+  height: auto;
+  max-width: 100%;
+  max-height: 100%;
+  margin-top: 200px;
+}
+</style>
